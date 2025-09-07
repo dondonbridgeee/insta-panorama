@@ -994,20 +994,45 @@
                     const sliceCount = layouts[currentLayoutKey].slices;
                     const sliceWidth = mainCanvas.width / sliceCount;
 
+                    // for (let i = 0; i < sliceCount; i++) {
+                    //     progressText.textContent = `Downloading slice ${i + 1} of ${sliceCount}...`;
+
+                    //     const sliceCanvas = document.createElement('canvas');
+                    //     sliceCanvas.width = sliceWidth;
+                    //     sliceCanvas.height = mainCanvas.height;
+                    //     sliceCanvas.getContext('2d').drawImage(mainCanvas, i * sliceWidth, 0, sliceWidth, mainCanvas.height, 0, 0, sliceWidth, mainCanvas.height);
+
+                    //     const link = document.createElement('a');
+                    //     link.download = `slice-${i + 1}-of-${sliceCount}.png`;
+                    //     link.href = sliceCanvas.toDataURL('image/png');
+
+                    //     await new Promise(resolve => setTimeout(resolve, 150));
+                    //     link.click();
+                    //     progressBar.style.width = `${((i + 1) / sliceCount) * 100}%`;
+                    // }
+                                        // ... inside the loop ...
                     for (let i = 0; i < sliceCount; i++) {
-                        progressText.textContent = `Downloading slice ${i + 1} of ${sliceCount}...`;
+                        progressText.textContent = `Processing slice ${i + 1} of ${sliceCount}...`;
 
                         const sliceCanvas = document.createElement('canvas');
                         sliceCanvas.width = sliceWidth;
                         sliceCanvas.height = mainCanvas.height;
                         sliceCanvas.getContext('2d').drawImage(mainCanvas, i * sliceWidth, 0, sliceWidth, mainCanvas.height, 0, 0, sliceWidth, mainCanvas.height);
 
-                        const link = document.createElement('a');
-                        link.download = `slice-${i + 1}-of-${sliceCount}.png`;
-                        link.href = sliceCanvas.toDataURL('image/png');
+                        const base64ImageData = sliceCanvas.toDataURL('image/png');
 
-                        await new Promise(resolve => setTimeout(resolve, 150));
-                        link.click();
+                        // Check if the Android bridge exists and use it
+                        if (window.Android && typeof window.Android.processBase64Image === 'function') {
+                            window.Android.processBase64Image(base64ImageData);
+                        } else {
+                            // Fallback for standard web browsers
+                            const link = document.createElement('a');
+                            link.download = `slice-${i + 1}-of-${sliceCount}.png`;
+                            link.href = base64ImageData;
+                            link.click();
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, 150)); // Keep a small delay
                         progressBar.style.width = `${((i + 1) / sliceCount) * 100}%`;
                     }
 
