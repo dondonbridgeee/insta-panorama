@@ -93,13 +93,8 @@
             white-space: normal;
             text-align: center;
         }
-        #panel-content-wrapper {
-            transition: max-height 0.4s ease-in-out;
-            max-height: 500px; /* A safe large value */
-            overflow: hidden;
-        }
-        #control-panel.minimized #panel-content-wrapper {
-            max-height: 70px;
+        .tab-content-wrapper {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
          #layout-options-wrapper {
             transition: max-height 0.4s ease-in-out;
@@ -115,6 +110,14 @@
             justify-content: center;
             gap: 1rem;
             padding-bottom: 1rem;
+        }
+        /* Toggle Switch CSS */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #2dd4bf;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #2dd4bf;
         }
     </style>
 </head>
@@ -143,85 +146,80 @@
         </div>
     </main>
 
-    <aside id="control-panel" class="w-full bg-gray-800 rounded-t-2xl shadow-lg flex-shrink-0 relative">
-         <button id="toggle-panel-btn" class="absolute top-3 right-4 bg-gray-700 hover:bg-gray-600 rounded-full p-1 cursor-pointer z-20">
-            <svg id="toggle-panel-icon" class="w-5 h-5 text-gray-300 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </button>
-        <div id="panel-content-wrapper" class="p-4">
-            <div class="max-w-5xl mx-auto">
-                <div class="border-b border-gray-700 mb-4">
-                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                        <button id="tab-btn-layout" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 active">Layout</button>
-                        <button id="tab-btn-aspect" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Aspect</button>
-                        <button id="tab-btn-edit" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Edit</button>
-                        <button id="tab-btn-save" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Save</button>
-                    </nav>
-                </div>
-                
-                <div class="relative overflow-hidden">
-                    <div id="tabs-wrapper" class="flex transition-transform duration-300 ease-in-out">
-                        <div id="tab-content-layout" class="w-full flex-shrink-0 px-1">
-                            <div id="layout-options-wrapper" class="scrollbar-hide">
-                                <div id="layout-options" class="flex space-x-4 overflow-x-auto py-2 scrollbar-hide">
-                                    <!-- Layout options will be generated here -->
+    <aside class="w-full bg-gray-800 p-4 rounded-t-2xl shadow-lg flex-shrink-0">
+        <div class="max-w-5xl mx-auto">
+            <div class="border-b border-gray-700 mb-4">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button id="tab-btn-layout" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 active">Layout</button>
+                    <button id="tab-btn-aspect" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Aspect</button>
+                    <button id="tab-btn-edit" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Edit</button>
+                    <button id="tab-btn-save" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Save</button>
+                </nav>
+            </div>
+            
+            <div class="relative overflow-hidden">
+                <div id="tabs-wrapper" class="flex transition-transform duration-300 ease-in-out">
+                    <div id="tab-content-layout" class="w-full flex-shrink-0 px-1">
+                        <div id="layout-options-wrapper" class="scrollbar-hide">
+                            <div id="layout-options" class="flex space-x-4 overflow-x-auto py-2 scrollbar-hide">
+                                <!-- Layout options will be generated here -->
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 mt-2">
+                             <button id="view-more-layouts-btn" class="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
+                                <span id="view-more-text">View More</span>
+                                <svg id="view-more-icon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="tab-content-aspect" class="w-full flex-shrink-0">
+                        <h3 class="text-sm font-medium text-gray-300 mb-2">Aspect Ratio</h3>
+                        <div id="aspect-ratio-options" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                    </div>
+                    
+                    <div id="tab-content-edit" class="w-full flex-shrink-0">
+                         <div class="space-y-3">
+                            <div>
+                                <label for="border-width-slider" class="block text-xs font-medium text-gray-300">Border: <span id="border-width-value">8</span>px</label>
+                                <input id="border-width-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                            <div>
+                                <label for="border-radius-slider" class="block text-xs font-medium text-gray-300">Radius: <span id="border-radius-value">8</span>px</label>
+                                <input id="border-radius-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                             <div class="flex items-center justify-between pt-2">
+                                <label for="gradient-toggle" class="text-xs font-medium text-gray-300">Dynamic Gradient BG</label>
+                                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                    <input type="checkbox" name="gradient-toggle" id="gradient-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
+                                    <label for="gradient-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-center mt-2">
-                                 <button id="view-more-layouts-btn" class="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
-                                    <span id="view-more-text">View More</span>
-                                    <svg id="view-more-icon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                             <div id="color-picker-container" class="hidden">
+                                 <label for="bg-color-picker" class="block text-xs font-medium text-gray-300">Background Color</label>
+                                 <input id="bg-color-picker" type="color" value="#1f2937" class="w-full h-10 p-1 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer">
+                             </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-content-save" class="w-full flex-shrink-0">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-300 mb-1">Output Quality</label>
+                                    <div id="quality-options" class="grid grid-cols-3 gap-2">
+                                        <button data-scale="2" class="quality-btn p-2 bg-teal-600 ring-2 ring-teal-400 rounded-lg text-xs font-medium transition-colors">Standard</button>
+                                        <button data-scale="3" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">High</button>
+                                        <button data-scale="4" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">Ultra</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <button id="save-button" class="w-full bg-gradient-to-r from-teal-400 to-sky-500 hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50 text-sm" disabled>
+                                    <span id="save-text">Download Slices</span>
+                                    <span id="spinner" class="hidden animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
                                 </button>
-                            </div>
-                        </div>
-
-                        <div id="tab-content-aspect" class="w-full flex-shrink-0">
-                            <h3 class="text-sm font-medium text-gray-300 mb-2">Aspect Ratio</h3>
-                            <div id="aspect-ratio-options" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
-                        </div>
-                        
-                        <div id="tab-content-edit" class="w-full flex-shrink-0">
-                             <div class="space-y-3">
-                                <div>
-                                    <label for="border-width-slider" class="block text-xs font-medium text-gray-300">Border: <span id="border-width-value">8</span>px</label>
-                                    <input id="border-width-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
-                                </div>
-                                <div>
-                                    <label for="border-radius-slider" class="block text-xs font-medium text-gray-300">Radius: <span id="border-radius-value">8</span>px</label>
-                                    <input id="border-radius-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
-                                </div>
-                                 <div class="flex items-center justify-between pt-2">
-                                    <label for="gradient-toggle" class="text-xs font-medium text-gray-300">Dynamic Gradient BG</label>
-                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                        <input type="checkbox" name="gradient-toggle" id="gradient-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
-                                        <label for="gradient-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
-                                    </div>
-                                </div>
-                                 <div id="color-picker-container" class="hidden">
-                                     <label for="bg-color-picker" class="block text-xs font-medium text-gray-300">Background Color</label>
-                                     <input id="bg-color-picker" type="color" value="#1f2937" class="w-full h-10 p-1 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer">
-                                 </div>
-                            </div>
-                        </div>
-
-                        <div id="tab-content-save" class="w-full flex-shrink-0">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-300 mb-1">Output Quality</label>
-                                        <div id="quality-options" class="grid grid-cols-3 gap-2">
-                                            <button data-scale="2" class="quality-btn p-2 bg-teal-600 ring-2 ring-teal-400 rounded-lg text-xs font-medium transition-colors">Standard</button>
-                                            <button data-scale="3" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">High</button>
-                                            <button data-scale="4" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">Ultra</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col space-y-2">
-                                    <button id="save-button" class="w-full bg-gradient-to-r from-teal-400 to-sky-500 hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50 text-sm" disabled>
-                                        <span id="save-text">Download Slices</span>
-                                        <span id="spinner" class="hidden animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-                                    </button>
-                                    <button id="clear-button" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">Clear Images</button>
-                                </div>
+                                <button id="clear-button" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">Clear Images</button>
                             </div>
                         </div>
                     </div>
@@ -260,10 +258,6 @@
             const gradientToggle = document.getElementById('gradient-toggle');
             const colorPickerContainer = document.getElementById('color-picker-container');
             const bgColorPicker = document.getElementById('bg-color-picker');
-            const controlPanel = document.getElementById('control-panel');
-            const togglePanelBtn = document.getElementById('toggle-panel-btn');
-            const togglePanelIcon = document.getElementById('toggle-panel-icon');
-            const panelContentWrapper = document.getElementById('panel-content-wrapper');
             let indicatorTimeout;
 
             const tabButtons = { layout: document.getElementById('tab-btn-layout'), aspect: document.getElementById('tab-btn-aspect'), edit: document.getElementById('tab-btn-edit'), save: document.getElementById('tab-btn-save') };
@@ -331,11 +325,6 @@
                 });
             });
             
-            togglePanelBtn.addEventListener('click', () => {
-                controlPanel.classList.toggle('minimized');
-                togglePanelIcon.classList.toggle('rotate-180');
-            });
-            
             viewMoreLayoutsBtn.addEventListener('click', () => {
                 layoutOptionsWrapper.classList.toggle('expanded');
                 if (layoutOptionsWrapper.classList.contains('expanded')) {
@@ -397,6 +386,7 @@
             function toggleEditMode(isEditable) {
                 document.querySelectorAll('.layout-cell').forEach(cell => {
                     cell.isEditable = isEditable;
+                    // You might want to toggle cursor style here as well
                     if(isEditable && !cell.classList.contains('has-image')) {
                         cell.style.cursor = 'pointer';
                     } else if (cell.classList.contains('has-image')) {
@@ -483,7 +473,7 @@
                 if (imgState.isDragging && e.touches.length === 1) {
                     const touch = e.touches[0];
                     imgState.x = touch.clientX - imgState.startX;
-                    imgState.y = touch.clientY - imgState.y;
+                    imgState.y = touch.clientY - imgState.startY;
                     updateTransform(imgState);
                 } else if (imgState.isPinching && e.touches.length === 2) {
                     const [t1, t2] = e.touches;
@@ -547,7 +537,7 @@
                             layoutPreviewContainer.classList.add('w-[175vw]', 'sm:w-[125vw]');
                         }
                         
-                        renderLayout();
+                        renderLayout(false);
                     });
                     aspectRatioOptionsContainer.appendChild(option);
                 });
@@ -584,8 +574,7 @@
                         option.classList.add('ring-2', 'ring-teal-400');
                         activeLayoutButton = option;
                         document.querySelector('#aspect-ratio-options button')?.click(); // Re-click the current aspect ratio to apply sizing
-                        renderLayout();
-                        switchTab('aspect');
+                        renderLayout(false);
                     });
                     return option;
                 }
