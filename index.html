@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaPanorama v1.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+            display: flex;
+            flex-direction: column;
+            height: 100%; /* Ensure body takes full viewport height */
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .layout-option-preview {
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .layout-option-preview:hover {
+            transform: scale(1.05);
+        }
+        #layout-preview {
+            display: grid;
+            background-color: transparent;
+            position: relative;
+            z-index: 10;
+        }
+        .layout-cell {
+            background-color: #374151;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-radius 0.2s ease-in-out;
+            touch-action: none;
+        }
+        .layout-cell img {
+            position: absolute;
+            object-fit: cover;
+            cursor: grab;
+            user-select: none;
+            pointer-events: none;
+        }
+        .placeholder-text {
+            color: white;
+            font-weight: 500;
+            text-align: center;
+            padding: 0.5rem;
+            background-color: rgba(0,0,0,0.4);
+            border-radius: 0.375rem;
+            pointer-events: none;
+        }
+        .layout-cell.has-image .placeholder-text,
+        .layout-cell.has-image span {
+            display: none;
+        }
+        .slice-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-image: linear-gradient(to bottom, white 60%, transparent 40%);
+            background-size: 100% 10px;
+            opacity: 0.7;
+            transform: translateX(-50%);
+            z-index: 20;
+        }
+        .tab-button.active {
+            color: #2dd4bf;
+            border-color: #2dd4bf;
+        }
+        .toastify {
+            max-width: 500px !important;
+            width: auto !important;
+            white-space: normal;
+            text-align: center;
+        }
+        #panel-content-wrapper {
+            transition: max-height 0.4s ease-in-out;
+            max-height: 500px; /* A safe large value */
+            overflow: hidden;
+        }
+        #control-panel.minimized #panel-content-wrapper {
+            max-height: 70px;
+        }
+         #layout-options-wrapper {
+            transition: max-height 0.4s ease-in-out;
+            max-height: 120px;
+            overflow: hidden;
+        }
+        #layout-options-wrapper.expanded {
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+        #layout-options-wrapper.expanded #layout-options {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            padding-bottom: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white antialiased">
+
+    <header class="text-center p-4 flex-shrink-0">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-300 to-sky-500 text-transparent bg-clip-text">InstaPanorama <span class="text-lg font-medium text-gray-400">v1.0</span></h1>
+    </header>
+
+    <main class="w-full flex-grow flex items-center justify-center p-2 min-h-0 relative">
+        <div id="main-placeholder" class="text-center text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-300">Select a layout below to start</h3>
+        </div>
+         <div id="preview-scroll-container" class="w-full h-full overflow-x-auto scrollbar-hide flex items-center justify-start md:justify-center hidden">
+            <div id="layout-preview-container" class="flex-shrink-0 w-[200vw] sm:w-[150vw] md:w-full max-h-full max-w-5xl shadow-2xl overflow-hidden relative transition-all duration-500" style="background-color: #1f2937;">
+                <div id="blur-bg" class="absolute inset-0 bg-cover bg-center filter blur-xl brightness-75 scale-110 hidden"></div>
+                <div id="layout-preview"></div>
+                <div id="slice-lines-overlay" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+            </div>
+        </div>
+        <div id="scroll-indicator" class="absolute bottom-8 bg-black bg-opacity-70 text-white px-3 py-1.5 rounded-full text-xs font-medium hidden items-center animate-pulse z-10 pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 -ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12" /></svg>
+            <span class="mx-2">Scroll Preview</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 -mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+        </div>
+    </main>
+
+    <aside id="control-panel" class="w-full bg-gray-800 rounded-t-2xl shadow-lg flex-shrink-0 relative">
+         <button id="toggle-panel-btn" class="absolute top-3 right-4 bg-gray-700 hover:bg-gray-600 rounded-full p-1 cursor-pointer z-20">
+            <svg id="toggle-panel-icon" class="w-5 h-5 text-gray-300 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div id="panel-content-wrapper" class="p-4">
+            <div class="max-w-5xl mx-auto">
+                <div class="border-b border-gray-700 mb-4">
+                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button id="tab-btn-layout" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 active">Layout</button>
+                        <button id="tab-btn-aspect" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Aspect</button>
+                        <button id="tab-btn-edit" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Edit</button>
+                        <button id="tab-btn-save" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Save</button>
+                    </nav>
+                </div>
+                
+                <div class="relative overflow-hidden">
+                    <div id="tabs-wrapper" class="flex transition-transform duration-300 ease-in-out">
+                        <div id="tab-content-layout" class="w-full flex-shrink-0 px-1">
+                            <div id="layout-options-wrapper" class="scrollbar-hide">
+                                <div id="layout-options" class="flex space-x-4 overflow-x-auto py-2 scrollbar-hide">
+                                    <!-- Layout options will be generated here -->
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-center mt-2">
+                                 <button id="view-more-layouts-btn" class="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
+                                    <span id="view-more-text">View More</span>
+                                    <svg id="view-more-icon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="tab-content-aspect" class="w-full flex-shrink-0">
+                            <h3 class="text-sm font-medium text-gray-300 mb-2">Aspect Ratio</h3>
+                            <div id="aspect-ratio-options" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                        </div>
+                        
+                        <div id="tab-content-edit" class="w-full flex-shrink-0">
+                             <div class="space-y-3">
+                                <div>
+                                    <label for="border-width-slider" class="block text-xs font-medium text-gray-300">Border: <span id="border-width-value">8</span>px</label>
+                                    <input id="border-width-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                                <div>
+                                    <label for="border-radius-slider" class="block text-xs font-medium text-gray-300">Radius: <span id="border-radius-value">8</span>px</label>
+                                    <input id="border-radius-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                                 <div class="flex items-center justify-between pt-2">
+                                    <label for="gradient-toggle" class="text-xs font-medium text-gray-300">Dynamic Gradient BG</label>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" name="gradient-toggle" id="gradient-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
+                                        <label for="gradient-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                                    </div>
+                                </div>
+                                 <div id="color-picker-container" class="hidden">
+                                     <label for="bg-color-picker" class="block text-xs font-medium text-gray-300">Background Color</label>
+                                     <input id="bg-color-picker" type="color" value="#1f2937" class="w-full h-10 p-1 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer">
+                                 </div>
+                            </div>
+                        </div>
+
+                        <div id="tab-content-save" class="w-full flex-shrink-0">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="space-y-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-300 mb-1">Output Quality</label>
+                                        <div id="quality-options" class="grid grid-cols-3 gap-2">
+                                            <button data-scale="2" class="quality-btn p-2 bg-teal-600 ring-2 ring-teal-400 rounded-lg text-xs font-medium transition-colors">Standard</button>
+                                            <button data-scale="3" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">High</button>
+                                            <button data-scale="4" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">Ultra</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col space-y-2">
+                                    <button id="save-button" class="w-full bg-gradient-to-r from-teal-400 to-sky-500 hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50 text-sm" disabled>
+                                        <span id="save-text">Download Slices</span>
+                                        <span id="spinner" class="hidden animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                                    </button>
+                                    <button id="clear-button" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">Clear Images</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <input type="file" id="image-upload" accept="image/*" class="hidden">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainPlaceholder = document.getElementById('main-placeholder');
+            const previewScrollContainer = document.getElementById('preview-scroll-container');
+            const layoutPreviewContainer = document.getElementById('layout-preview-container');
+            const layoutPreview = document.getElementById('layout-preview');
+            const sliceLinesOverlay = document.getElementById('slice-lines-overlay');
+            const imageUploadInput = document.getElementById('image-upload');
+            const saveButton = document.getElementById('save-button');
+            const clearButton = document.getElementById('clear-button');
+            const saveText = document.getElementById('save-text');
+            const spinner = document.getElementById('spinner');
+            const borderWidthSlider = document.getElementById('border-width-slider');
+            const borderWidthValue = document.getElementById('border-width-value');
+            const borderRadiusSlider = document.getElementById('border-radius-slider');
+            const borderRadiusValue = document.getElementById('border-radius-value');
+            const layoutOptionsContainer = document.getElementById('layout-options');
+            const layoutOptionsWrapper = document.getElementById('layout-options-wrapper');
+            const aspectRatioOptionsContainer = document.getElementById('aspect-ratio-options');
+            const scrollIndicator = document.getElementById('scroll-indicator');
+            const viewMoreLayoutsBtn = document.getElementById('view-more-layouts-btn');
+            const viewMoreText = document.getElementById('view-more-text');
+            const viewMoreIcon = document.getElementById('view-more-icon');
+            const blurBg = document.getElementById('blur-bg');
+            const tabsWrapper = document.getElementById('tabs-wrapper');
+            const gradientToggle = document.getElementById('gradient-toggle');
+            const colorPickerContainer = document.getElementById('color-picker-container');
+            const bgColorPicker = document.getElementById('bg-color-picker');
+            const controlPanel = document.getElementById('control-panel');
+            const togglePanelBtn = document.getElementById('toggle-panel-btn');
+            const togglePanelIcon = document.getElementById('toggle-panel-icon');
+            const panelContentWrapper = document.getElementById('panel-content-wrapper');
+            let indicatorTimeout;
+
+            const tabButtons = { layout: document.getElementById('tab-btn-layout'), aspect: document.getElementById('tab-btn-aspect'), edit: document.getElementById('tab-btn-edit'), save: document.getElementById('tab-btn-save') };
+            const tabOrder = ['layout', 'aspect', 'edit', 'save'];
+            
+            let activeCell = null, imagesLoadedCount = 0, activeLayoutButton = null, activeAspectRatioButton = null, gestureTargetCell = null;
+            let cellColors = new Map();
+            let currentLayoutKey = null;
+            let currentAspectRatioKey = '1:1';
+            let currentScale = 2;
+            let cellData = [];
+
+            const aspectRatios = { '1:1': { w: 1, h: 1 }, '4:5': { w: 4, h: 5 }, '1.91:1': { w: 1.91, h: 1 } };
+            const layouts = {
+                'Solo Focus': { slices: 1, grid: 'grid-cols-1', cells: [{ c: 1, r: 1 }], special: 'blur-bg' },
+                'Duo': { slices: 2, grid: 'grid-cols-2 grid-rows-1', cells: [{ c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Stack': { slices: 2, grid: 'grid-cols-2 grid-rows-2', cells: [{ c: 2, r: 1 }, { c: 2, r: 1 }] },
+                'T-Split': { slices: 2, grid: 'grid-cols-2 grid-rows-2', cells: [{ c: 1, r: 2 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Quad': { slices: 2, grid: 'grid-cols-2 grid-rows-2', cells: [{ c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Trio': { slices: 3, grid: 'grid-cols-3 grid-rows-1', cells: [{ c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Side Stack': { slices: 3, grid: 'grid-cols-3 grid-rows-2', cells: [{ c: 2, r: 2 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Six Grid': { slices: 3, grid: 'grid-cols-3 grid-rows-2', cells: [{c:1,r:1}, {c:1,r:1}, {c:1,r:1}, {c:1,r:1}, {c:1,r:1}, {c:1,r:1}] },
+                'Triplet Top': { slices: 3, grid: 'grid-cols-3 grid-rows-2', cells: [{ c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 3, r: 1 }] },
+                'Feature': { slices: 3, grid: 'grid-cols-3 grid-rows-3', cells: [{ c: 2, r: 3 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Panorama': { slices: 4, grid: 'grid-cols-4 grid-rows-2', cells: [{ c: 4, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Gallery': { slices: 4, grid: 'grid-cols-4 grid-rows-2', cells: [{ c: 2, r: 2 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 2, r: 1 }] },
+                'Symmetry': { slices: 4, grid: 'grid-cols-4 grid-rows-2', cells: [{ c: 1, r: 2 }, { c: 2, r: 1 }, { c: 2, r: 1 }, { c: 1, r: 2 }] },
+                'Centerpiece': { slices: 4, grid: 'grid-cols-4 grid-rows-2', cells: [{ c: 1, r: 1 }, { c: 2, r: 2 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+                'Film Strip': { slices: 5, grid: 'grid-cols-5 grid-rows-1', cells: [{ c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
+            };
+            
+            function showNotification(message, isError = true) {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    close: true,
+                    gravity: "top",
+                    position: "right",
+                    stopOnFocus: true,
+                    style: { background: isError ? "#ef4444" : "#10b981", borderRadius: "0.5rem" },
+                }).showToast();
+            }
+
+            function switchTab(tabName) {
+                if (tabName !== 'layout' && layoutOptionsWrapper.classList.contains('expanded')) {
+                    layoutOptionsWrapper.classList.remove('expanded');
+                    viewMoreText.textContent = 'View More';
+                    viewMoreIcon.classList.remove('rotate-180');
+                }
+                
+                const tabIndex = tabOrder.indexOf(tabName);
+                tabsWrapper.style.transform = `translateX(-${tabIndex * 100}%)`;
+                Object.values(tabButtons).forEach(btn => btn.classList.remove('active'));
+                tabButtons[tabName].classList.add('active');
+
+                const isEditable = (tabName === 'edit');
+                toggleEditMode(isEditable);
+            }
+            
+            Object.keys(tabButtons).forEach(key => {
+                tabButtons[key].addEventListener('click', () => {
+                    if(!tabButtons[key].disabled) {
+                        switchTab(key);
+                    }
+                });
+            });
+            
+            togglePanelBtn.addEventListener('click', () => {
+                controlPanel.classList.toggle('minimized');
+                togglePanelIcon.classList.toggle('rotate-180');
+            });
+            
+            viewMoreLayoutsBtn.addEventListener('click', () => {
+                layoutOptionsWrapper.classList.toggle('expanded');
+                if (layoutOptionsWrapper.classList.contains('expanded')) {
+                    viewMoreText.textContent = 'View Less';
+                    viewMoreIcon.classList.add('rotate-180');
+                } else {
+                    viewMoreText.textContent = 'View More';
+                    viewMoreIcon.classList.remove('rotate-180');
+                }
+            });
+
+
+            function renderSliceLines() {
+                requestAnimationFrame(() => {
+                    sliceLinesOverlay.innerHTML = '';
+                    if (!currentLayoutKey) return;
+                    const { slices } = layouts[currentLayoutKey];
+                    if (slices > 1) {
+                        for (let i = 1; i < slices; i++) {
+                            const line = document.createElement('div');
+                            line.className = 'slice-line';
+                            const posPercent = (i / slices) * 100;
+                            line.style.left = `calc(${posPercent}% - (${borderWidthSlider.value}px * ${posPercent / 100}) + ${borderWidthSlider.value / 2}px)`;
+                            sliceLinesOverlay.appendChild(line);
+                        }
+                    }
+                });
+            }
+
+            function updatePlaceholders() {
+                const isMobile = window.innerWidth < 768;
+                document.querySelectorAll('.layout-cell').forEach(cell => {
+                    if (!cell.classList.contains('has-image')) {
+                        if(cell.isEditable) {
+                           cell.innerHTML = isMobile ? '<span class="text-gray-400 text-4xl font-light">+</span>' : '<span class="placeholder-text text-xs">Click to Add</span>';
+                        } else {
+                           cell.innerHTML = '';
+                        }
+                    }
+                });
+            }
+            
+            function showScrollIndicator() {
+                clearTimeout(indicatorTimeout);
+                const isMobile = window.innerWidth < 768;
+                if (isMobile && previewScrollContainer.scrollWidth > previewScrollContainer.clientWidth) {
+                    scrollIndicator.classList.remove('hidden');
+                    scrollIndicator.classList.add('flex');
+                    indicatorTimeout = setTimeout(() => {
+                        scrollIndicator.classList.add('hidden');
+                        scrollIndicator.classList.remove('flex');
+                    }, 3000);
+                } else {
+                    scrollIndicator.classList.add('hidden');
+                    scrollIndicator.classList.remove('flex');
+                }
+            }
+            
+            function toggleEditMode(isEditable) {
+                document.querySelectorAll('.layout-cell').forEach(cell => {
+                    cell.isEditable = isEditable;
+                    if(isEditable && !cell.classList.contains('has-image')) {
+                        cell.style.cursor = 'pointer';
+                    } else if (cell.classList.contains('has-image')) {
+                        cell.style.cursor = isEditable ? 'grab' : 'default';
+                    } else {
+                         cell.style.cursor = 'default';
+                    }
+                });
+                updatePlaceholders();
+            }
+
+            function renderLayout() {
+                if (!currentLayoutKey) return;
+                mainPlaceholder.classList.add('hidden');
+                previewScrollContainer.classList.remove('hidden');
+                const layout = layouts[currentLayoutKey];
+                const aspectRatio = aspectRatios[currentAspectRatioKey];
+                layoutPreview.innerHTML = '';
+                layoutPreview.className = `w-full h-full ${layout.grid}`;
+                layoutPreview.style.gap = `${borderWidthSlider.value}px`;
+                layoutPreviewContainer.style.padding = `${borderWidthSlider.value}px`;
+                layoutPreviewContainer.style.borderRadius = `${borderRadiusSlider.value}px`;
+                layoutPreviewContainer.style.aspectRatio = (layout.slices * aspectRatio.w) / aspectRatio.h;
+                
+                imagesLoadedCount = 0;
+                saveButton.disabled = true;
+
+                layout.cells.forEach((cellInfo, index) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'layout-cell';
+                    cell.style.borderRadius = `${borderRadiusSlider.value}px`;
+                    cell.style.gridColumn = `span ${cellInfo.c}`;
+                    cell.style.gridRow = `span ${cellInfo.r}`;
+                   
+                    cell.imgState = { img: null, x: 0, y: 0, scale: 1, isDragging: false, startX: 0, startY: 0, isPinching: false, initialPinchDistance: 0, startScale: 1, objectURL: null };
+                    cell.addEventListener('click', () => { if (cell.isEditable && !cell.classList.contains('has-image')) { activeCell = cell; imageUploadInput.click(); } });
+                    cell.addEventListener('mousedown', (e) => { if (cell.isEditable && cell.classList.contains('has-image')) { e.preventDefault(); gestureTargetCell = cell; cell.imgState.isDragging = true; cell.imgState.startX = e.clientX - cell.imgState.x; cell.imgState.startY = e.clientY - cell.imgState.y; } });
+                    cell.addEventListener('touchstart', (e) => { if (cell.isEditable && cell.classList.contains('has-image') && e.touches.length === 1) { gestureTargetCell = cell; const { imgState } = cell; const touch = e.touches[0]; imgState.isDragging = true; imgState.startX = touch.clientX - imgState.x; imgState.startY = touch.clientY - imgState.y; } }, { passive: true });
+                    cell.addEventListener('wheel', (e) => { if (cell.isEditable && cell.classList.contains('has-image')) { e.preventDefault(); const { imgState } = cell; const scaleAmount = 0.1; imgState.scale = e.deltaY < 0 ? imgState.scale + scaleAmount : Math.max(1, imgState.scale - scaleAmount); updateTransform(imgState); } });
+                    
+                    if (cellData[index] && cellData[index].objectURL) {
+                        recreateImageInCell(cell, cellData[index]);
+                    }
+                    layoutPreview.appendChild(cell);
+                }); 
+                updatePlaceholders();
+                renderSliceLines();
+                showScrollIndicator();
+            }
+            
+            function recreateImageInCell(cell, data) {
+                 const cellImg = new Image();
+                 cellImg.src = data.objectURL;
+                 cellImg.onload = () => {
+                    cell.innerHTML = '';
+                    cell.appendChild(cellImg);
+                    cell.imgState = data;
+                    cell.imgState.img = cellImg;
+                    updateTransform(cell.imgState);
+                    cell.classList.add('has-image');
+                    imagesLoadedCount++;
+                    if (imagesLoadedCount > 0) saveButton.disabled = false;
+                 }
+            }
+
+            window.addEventListener('mousedown', () => { /* Prevent default text selection */ });
+            window.addEventListener('mousemove', (e) => { if (gestureTargetCell?.imgState.isDragging) { const { imgState } = gestureTargetCell; imgState.x = e.clientX - imgState.startX; imgState.y = e.clientY - imgState.startY; updateTransform(imgState); } });
+            window.addEventListener('mouseup', () => { if (gestureTargetCell) { gestureTargetCell.imgState.isDragging = false; gestureTargetCell = null; } });
+            
+            window.addEventListener('touchstart', (e) => {
+                if (gestureTargetCell && e.touches.length === 2) {
+                    const { imgState } = gestureTargetCell;
+                    imgState.isDragging = false;
+                    imgState.isPinching = true;
+                    const [t1, t2] = e.touches;
+                    imgState.initialPinchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                    imgState.startScale = imgState.scale;
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!gestureTargetCell) return;
+                const { imgState } = gestureTargetCell;
+                if (imgState.isDragging && e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    imgState.x = touch.clientX - imgState.startX;
+                    imgState.y = touch.clientY - imgState.y;
+                    updateTransform(imgState);
+                } else if (imgState.isPinching && e.touches.length === 2) {
+                    const [t1, t2] = e.touches;
+                    const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                    imgState.scale = Math.max(1, imgState.startScale * (currentDist / imgState.initialPinchDistance));
+                    updateTransform(imgState);
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchend', (e) => {
+                if (gestureTargetCell) {
+                    const { imgState } = gestureTargetCell;
+                    if (e.touches.length < 2) {
+                        imgState.isPinching = false;
+                    }
+                    if (e.touches.length === 1) {
+                        imgState.isDragging = true;
+                        const touch = e.touches[0];
+                        imgState.startX = touch.clientX - imgState.x;
+                        imgState.startY = touch.clientY - imgState.y;
+                    }
+                    if (e.touches.length < 1) {
+                        imgState.isDragging = false;
+                        gestureTargetCell = null;
+                    }
+                }
+            });
+
+            function updateTransform(state) { if (state.img) state.img.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`; }
+            
+            function clearBlurBackground() {
+                blurBg.style.backgroundImage = 'none';
+                blurBg.classList.add('hidden');
+                updateBackground();
+            }
+
+            function setBlurBackground(imageUrl) {
+                blurBg.style.backgroundImage = `url(${imageUrl})`;
+                blurBg.classList.remove('hidden');
+                layoutPreviewContainer.style.backgroundColor = 'transparent';
+            }
+
+            function generateAspectRatioOptions() {
+                aspectRatioOptionsContainer.innerHTML = '';
+                Object.keys(aspectRatios).forEach(key => {
+                    const option = document.createElement('button');
+                    option.className = 'p-2 bg-gray-700 rounded-lg text-xs font-medium hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400';
+                    option.textContent = key;
+                    option.addEventListener('click', () => {
+                        currentAspectRatioKey = key;
+                        if (activeAspectRatioButton) activeAspectRatioButton.classList.remove('ring-2', 'ring-teal-400', 'bg-teal-600');
+                        option.classList.add('ring-2', 'ring-teal-400', 'bg-teal-600');
+                        activeAspectRatioButton = option;
+
+                        layoutPreviewContainer.classList.remove('w-full', 'w-[175vw]', 'sm:w-[125vw]', 'w-[220vw]', 'sm:w-[175vw]');
+                        if (currentLayoutKey === 'Solo Focus') {
+                           layoutPreviewContainer.classList.add('w-full');
+                        } else if (key === '1.91:1') {
+                            layoutPreviewContainer.classList.add('w-[220vw]', 'sm:w-[175vw]');
+                        } else {
+                            layoutPreviewContainer.classList.add('w-[175vw]', 'sm:w-[125vw]');
+                        }
+                        
+                        renderLayout();
+                    });
+                    aspectRatioOptionsContainer.appendChild(option);
+                });
+                 // Set default aspect ratio
+                const defaultAspectBtn = aspectRatioOptionsContainer.querySelector('button');
+                if(defaultAspectBtn) defaultAspectBtn.click();
+            }
+
+            function generateLayoutOptions() {
+                const allLayoutKeys = Object.keys(layouts);
+                layoutOptionsContainer.innerHTML = '';
+
+                const createOption = (key) => {
+                    const layout = layouts[key];
+                    const option = document.createElement('div');
+                    option.className = 'layout-option-preview p-2 bg-gray-700 rounded-lg space-y-1.5 flex-shrink-0 w-28';
+                    const previewGrid = document.createElement('div');
+                    previewGrid.className = `grid gap-1 h-16 ${layout.grid}`;
+                    layout.cells.forEach(c => {
+                        const cell = document.createElement('div');
+                        cell.className = 'bg-gray-500 rounded-sm';
+                        cell.style.gridColumn = `span ${c.c}`; cell.style.gridRow = `span ${c.r}`;
+                        previewGrid.appendChild(cell);
+                    });
+                    const text = document.createElement('p');
+                    text.className = 'text-xs text-center font-medium text-gray-300';
+                    text.textContent = key;
+                    option.append(previewGrid, text);
+                    option.addEventListener('click', () => {
+                        currentLayoutKey = key;
+                        cellData = new Array(layout.cells.length).fill(null);
+                        tabButtons.aspect.disabled = false; tabButtons.edit.disabled = false; tabButtons.save.disabled = false;
+                        if (activeLayoutButton) activeLayoutButton.classList.remove('ring-2', 'ring-teal-400');
+                        option.classList.add('ring-2', 'ring-teal-400');
+                        activeLayoutButton = option;
+                        document.querySelector('#aspect-ratio-options button')?.click(); // Re-click the current aspect ratio to apply sizing
+                        renderLayout();
+                        switchTab('aspect');
+                    });
+                    return option;
+                }
+
+                allLayoutKeys.forEach(key => {
+                    layoutOptionsContainer.appendChild(createOption(key));
+                });
+            }
+            
+            function getAverageColor(imgElement) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 10; canvas.height = 10;
+                ctx.drawImage(imgElement, 0, 0, 10, 10);
+                const data = ctx.getImageData(0, 0, 10, 10).data;
+                let r = 0, g = 0, b = 0;
+                for (let i = 0; i < data.length; i += 4) { r += data[i]; g += data[i + 1]; b += data[i + 2]; }
+                const count = data.length / 4;
+                r = ~~(r / count); g = ~~(g / count); b = ~~(b / count);
+                return `#${('0' + r.toString(16)).slice(-2)}${('0' + g.toString(16)).slice(-2)}${('0' + b.toString(16)).slice(-2)}`;
+            }
+
+            function updateGradientBackground() {
+                const colors = Array.from(cellColors.values());
+                layoutPreviewContainer.style.background = colors.length === 0 ? '#1f2937' : colors.length === 1 ? colors[0] : `linear-gradient(to bottom right, ${colors.join(', ')})`;
+            }
+            
+            function updateBackground() {
+                if (layouts[currentLayoutKey]?.special === 'blur-bg' && cellColors.size > 0) {
+                     return; // Blur background takes precedence
+                }
+                
+                if (gradientToggle.checked) {
+                    colorPickerContainer.classList.add('hidden');
+                    updateGradientBackground();
+                } else {
+                    colorPickerContainer.classList.remove('hidden');
+                    layoutPreviewContainer.style.background = bgColorPicker.value;
+                }
+            }
+
+            gradientToggle.addEventListener('change', updateBackground);
+            bgColorPicker.addEventListener('input', () => {
+                if (!gradientToggle.checked) {
+                    layoutPreviewContainer.style.background = bgColorPicker.value;
+                }
+            });
+
+
+            imageUploadInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file || !activeCell) return;
+                if (!file.type.startsWith('image/')) {
+                    showNotification('Invalid file type. Please select an image.');
+                    return;
+                }
+                
+                const tempImg = new Image();
+                const tempObjectURL = URL.createObjectURL(file);
+
+                tempImg.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    canvas.width = tempImg.width;
+                    canvas.height = tempImg.height;
+                    
+                    ctx.drawImage(tempImg, 0, 0, tempImg.width, tempImg.height);
+                    URL.revokeObjectURL(tempObjectURL);
+
+                    canvas.toBlob(blob => {
+                        if (activeCell.imgState.objectURL) {
+                            URL.revokeObjectURL(activeCell.imgState.objectURL);
+                        }
+                        
+                        const normalizedObjectURL = URL.createObjectURL(blob);
+                        activeCell.imgState.objectURL = normalizedObjectURL;
+                        
+                        const cellImg = new Image();
+                        cellImg.src = normalizedObjectURL;
+
+                        cellImg.onload = () => {
+                            if (!activeCell.classList.contains('has-image')) imagesLoadedCount++;
+                            const cellRect = activeCell.getBoundingClientRect();
+                            const cellRatio = cellRect.width / cellRect.height;
+                            const imgRatio = cellImg.naturalWidth / cellImg.naturalHeight;
+
+                            cellImg.style.height = imgRatio > cellRatio ? '100%' : 'auto';
+                            cellImg.style.width = imgRatio > cellRatio ? 'auto' : '100%';
+                            
+                            activeCell.innerHTML = '';
+                            activeCell.appendChild(cellImg);
+                            const { imgState } = activeCell;
+                            imgState.img = cellImg;
+                            imgState.scale = 1;
+                            imgState.x = 0;
+                            imgState.y = 0;
+                            updateTransform(imgState);
+                            activeCell.classList.add('has-image');
+                            if (imagesLoadedCount > 0) saveButton.disabled = false;
+                            
+                            const cellIndex = Array.from(layoutPreview.children).indexOf(activeCell);
+                            cellData[cellIndex] = activeCell.imgState;
+                            
+                            if (layouts[currentLayoutKey].special === 'blur-bg') {
+                                setBlurBackground(cellImg.src);
+                                cellColors.clear();
+                            } else {
+                                clearBlurBackground();
+                                cellColors.set(activeCell, getAverageColor(cellImg));
+                                updateBackground();
+                            }
+                        };
+                        
+                        cellImg.onerror = () => {
+                            showNotification('Error: Could not load processed image.');
+                            URL.revokeObjectURL(normalizedObjectURL);
+                            activeCell.imgState.objectURL = null;
+                            updatePlaceholders();
+                        };
+                    }, file.type);
+                };
+                
+                tempImg.onerror = () => {
+                    showNotification('Error: Could not load the selected image.');
+                    URL.revokeObjectURL(tempObjectURL);
+                    updatePlaceholders();
+                };
+
+                tempImg.src = tempObjectURL;
+                event.target.value = null;
+            });
+
+            clearButton.addEventListener('click', () => { 
+                document.querySelectorAll('.layout-cell').forEach(cell => { if (cell.imgState?.objectURL) URL.revokeObjectURL(cell.imgState.objectURL); });
+                cellData = [];
+                clearBlurBackground();
+                renderLayout(true);
+                cellColors.clear();
+                updateBackground();
+            });
+
+            borderWidthSlider.addEventListener('input', (e) => { borderWidthValue.textContent = e.target.value; if (currentLayoutKey) { layoutPreviewContainer.style.padding = `${e.target.value}px`; layoutPreview.style.gap = `${e.target.value}px`; renderSliceLines(); } });
+            borderRadiusSlider.addEventListener('input', (e) => { borderRadiusValue.textContent = e.target.value; if (currentLayoutKey) { layoutPreviewContainer.style.borderRadius = `${e.target.value}px`; document.querySelectorAll('.layout-cell').forEach(cell => cell.style.borderRadius = `${e.target.value}px`); } });
+
+            const qualityOptions = document.getElementById('quality-options');
+            qualityOptions.addEventListener('click', (e) => {
+                if (e.target.matches('.quality-btn')) {
+                    qualityOptions.querySelectorAll('.quality-btn').forEach(btn => {
+                        btn.classList.remove('bg-teal-600', 'ring-2', 'ring-teal-400');
+                        btn.classList.add('bg-gray-700');
+                    });
+                    e.target.classList.add('bg-teal-600', 'ring-2', 'ring-teal-400');
+                    e.target.classList.remove('bg-gray-700');
+                    currentScale = parseInt(e.target.dataset.scale);
+                }
+            });
+
+            saveButton.addEventListener('click', async () => {
+                saveText.classList.add('hidden'); spinner.classList.remove('hidden'); saveButton.disabled = true;
+                try {
+                    sliceLinesOverlay.style.display = 'none';
+                    const mainCanvas = await html2canvas(layoutPreviewContainer, {
+                        useCORS: true, scale: currentScale, backgroundColor: null,
+                        onclone: (doc) => {
+                            const container = doc.getElementById('layout-preview-container');
+                            container.style.transition = 'none';
+                            const originalCells = layoutPreview.querySelectorAll('.layout-cell');
+                            doc.querySelectorAll('.layout-cell').forEach((clonedCell, index) => {
+                                const originalImg = originalCells[index]?.querySelector('img');
+                                if (originalImg) {
+                                    const clonedImg = clonedCell.querySelector('img');
+                                    if(clonedImg) clonedImg.style.transform = getComputedStyle(originalImg).transform;
+                                }
+                            });
+                        }
+                    });
+                    sliceLinesOverlay.style.display = 'block';
+                    
+                    const sliceCount = layouts[currentLayoutKey].slices;
+                    const sliceWidth = mainCanvas.width / sliceCount;
+
+                    for (let i = 0; i < sliceCount; i++) {
+                        const sliceCanvas = document.createElement('canvas');
+                        sliceCanvas.width = sliceWidth;
+                        sliceCanvas.height = mainCanvas.height;
+                        sliceCanvas.getContext('2d').drawImage(mainCanvas, i * sliceWidth, 0, sliceWidth, mainCanvas.height, 0, 0, sliceWidth, mainCanvas.height);
+                        const link = document.createElement('a');
+                        link.download = `slice-${i + 1}-of-${sliceCount}.png`;
+                        link.href = sliceCanvas.toDataURL('image/png');
+                        link.click();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                } catch (err) { console.error('Error saving slices:', err); showNotification('Error: Could not save slices.'); } 
+                finally {
+                    setTimeout(() => {
+                        saveText.classList.remove('hidden'); spinner.classList.add('hidden');
+                        if(imagesLoadedCount > 0) saveButton.disabled = false;
+                    }, 500);
+                }
+            });
+
+            generateLayoutOptions();
+            generateAspectRatioOptions();
+            switchTab('layout');
+
+            window.addEventListener('resize', () => { if (currentLayoutKey) updatePlaceholders(); });
+        });
+    </script>
+</body>
+</html>
+
