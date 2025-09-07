@@ -50,7 +50,7 @@
             align-items: center;
             justify-content: center;
             transition: border-radius 0.2s ease-in-out;
-            touch-action: none;
+            /* touch-action: none; */ /* Removed to allow native browser scrolling */
         }
         .layout-cell img {
             position: absolute;
@@ -93,6 +93,16 @@
             white-space: normal;
             text-align: center;
         }
+        #expanded-edit-controls {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+         #expanded-edit-controls.expanded {
+            max-height: 500px; /* Adjust as needed */
+            opacity: 1;
+        }
         .tab-content-wrapper {
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -119,6 +129,136 @@
         .toggle-checkbox:checked + .toggle-label {
             background-color: #2dd4bf;
         }
+        #panel-content-wrapper {
+            transition: max-height 0.4s ease-in-out;
+            max-height: 500px; /* A safe large value */
+            overflow: hidden;
+        }
+        #control-panel.minimized #panel-content-wrapper {
+            max-height: 0;
+        }
+        /* ===== ADDED FOR DELETE BUTTON ===== */
+        .delete-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            background-color: rgba(17, 24, 39, 0.7);
+            color: white;
+            border-radius: 9999px;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 30;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+        }
+        .delete-btn:hover {
+            background-color: #ef4444; /* red-500 */
+            transform: scale(1.1);
+        }
+        .layout-cell.has-image .delete-btn {
+            display: flex; /* Show when an image is present */
+        }
+        /* ===== END OF ADDED CSS ===== */
+
+        /* ===== DOWNLOAD MODAL CSS ===== */
+        #download-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 24, 39, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out;
+        }
+        #download-modal.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            background-color: #1f2937; /* gray-800 */
+            padding: 2rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
+        }
+        #download-modal.visible .modal-content {
+            transform: scale(1);
+        }
+        .progress-bar-container {
+            width: 100%;
+            background-color: #374151; /* gray-700 */
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 0.75rem;
+            background-color: #2dd4bf; /* teal-400 */
+            border-radius: 9999px;
+            transition: width 0.3s ease-in-out;
+        }
+        /* ===== END DOWNLOAD MODAL CSS ===== */
+
+        /* ===== CHECKMARK ANIMATION ===== */
+        .checkmark-container {
+            width: 100px;
+            height: 100px;
+            margin: 1.5rem auto;
+            display: none; /* Hide by default */
+        }
+        .checkmark {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 2;
+            stroke: #fff;
+            stroke-miterlimit: 10;
+            box-shadow: inset 0px 0px 0px #2dd4bf;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        .checkmark-circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 2;
+            stroke-miterlimit: 10;
+            stroke: #2dd4bf; /* teal-400 */
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark-check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+        }
+        @keyframes stroke {
+            100% { stroke-dashoffset: 0; }
+        }
+        @keyframes scale {
+            0%, 100% { transform: none; }
+            50% { transform: scale3d(1.1, 1.1, 1); }
+        }
+        @keyframes fill {
+            100% { box-shadow: inset 0px 0px 0px 50px #2dd4bf; }
+        }
+        /* ===== END CHECKMARK ANIMATION ===== */
     </style>
 </head>
 <body class="bg-gray-900 text-white antialiased">
@@ -127,7 +267,7 @@
         <h1 class="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-teal-300 to-sky-500 text-transparent bg-clip-text">InstaPanorama <span class="text-lg font-medium text-gray-400">v1.0</span></h1>
     </header>
 
-    <main class="w-full flex-grow flex items-center justify-center p-2 min-h-0 relative">
+    <main class="w-full flex-grow flex items-center justify-center p-4 min-h-0 relative">
         <div id="main-placeholder" class="text-center text-gray-500">
             <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <h3 class="mt-2 text-sm font-medium text-gray-300">Select a layout below to start</h3>
@@ -146,80 +286,86 @@
         </div>
     </main>
 
-    <aside class="w-full bg-gray-800 p-4 rounded-t-2xl shadow-lg flex-shrink-0">
-        <div class="max-w-5xl mx-auto">
-            <div class="border-b border-gray-700 mb-4">
-                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                    <button id="tab-btn-layout" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 active">Layout</button>
-                    <button id="tab-btn-aspect" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Aspect</button>
-                    <button id="tab-btn-edit" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Edit</button>
-                    <button id="tab-btn-save" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Save</button>
-                </nav>
-            </div>
-            
-            <div class="relative overflow-hidden">
-                <div id="tabs-wrapper" class="flex transition-transform duration-300 ease-in-out">
-                    <div id="tab-content-layout" class="w-full flex-shrink-0 px-1">
-                        <div id="layout-options-wrapper" class="scrollbar-hide">
-                            <div id="layout-options" class="flex space-x-4 overflow-x-auto py-2 scrollbar-hide">
-                                <!-- Layout options will be generated here -->
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 mt-2">
-                             <button id="view-more-layouts-btn" class="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
-                                <span id="view-more-text">View More</span>
-                                <svg id="view-more-icon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="tab-content-aspect" class="w-full flex-shrink-0">
-                        <h3 class="text-sm font-medium text-gray-300 mb-2">Aspect Ratio</h3>
-                        <div id="aspect-ratio-options" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
-                    </div>
-                    
-                    <div id="tab-content-edit" class="w-full flex-shrink-0">
-                         <div class="space-y-3">
-                            <div>
-                                <label for="border-width-slider" class="block text-xs font-medium text-gray-300">Border: <span id="border-width-value">8</span>px</label>
-                                <input id="border-width-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
-                            </div>
-                            <div>
-                                <label for="border-radius-slider" class="block text-xs font-medium text-gray-300">Radius: <span id="border-radius-value">8</span>px</label>
-                                <input id="border-radius-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
-                            </div>
-                             <div class="flex items-center justify-between pt-2">
-                                <label for="gradient-toggle" class="text-xs font-medium text-gray-300">Dynamic Gradient BG</label>
-                                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                    <input type="checkbox" name="gradient-toggle" id="gradient-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
-                                    <label for="gradient-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
-                                </div>
-                            </div>
-                             <div id="color-picker-container" class="hidden">
-                                 <label for="bg-color-picker" class="block text-xs font-medium text-gray-300">Background Color</label>
-                                 <input id="bg-color-picker" type="color" value="#1f2937" class="w-full h-10 p-1 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer">
-                             </div>
-                        </div>
-                    </div>
-
-                    <div id="tab-content-save" class="w-full flex-shrink-0">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-300 mb-1">Output Quality</label>
-                                    <div id="quality-options" class="grid grid-cols-3 gap-2">
-                                        <button data-scale="2" class="quality-btn p-2 bg-teal-600 ring-2 ring-teal-400 rounded-lg text-xs font-medium transition-colors">Standard</button>
-                                        <button data-scale="3" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">High</button>
-                                        <button data-scale="4" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">Ultra</button>
+    <aside id="control-panel" class="w-full bg-gray-800 rounded-t-2xl shadow-lg flex-shrink-0 relative">
+         <button id="toggle-panel-btn" class="absolute top-4 right-4 bg-gray-700 hover:bg-gray-600 rounded-full p-1 cursor-pointer z-20">
+            <svg id="toggle-panel-icon" class="w-5 h-5 text-gray-300 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div class="p-4">
+            <div class="max-w-5xl mx-auto">
+                <div class="border-b border-gray-700 mb-4">
+                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button id="tab-btn-layout" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400 active">Layout</button>
+                        <button id="tab-btn-aspect" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Aspect</button>
+                        <button id="tab-btn-edit" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Edit</button>
+                        <button id="tab-btn-save" class="tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-400" disabled>Save</button>
+                    </nav>
+                </div>
+                <div id="panel-content-wrapper">
+                    <div class="relative overflow-hidden">
+                        <div id="tabs-wrapper" class="flex transition-transform duration-300 ease-in-out">
+                            <div id="tab-content-layout" class="w-full flex-shrink-0 px-1">
+                                <div id="layout-options-wrapper" class="scrollbar-hide">
+                                    <div id="layout-options" class="flex space-x-4 overflow-x-auto py-2 scrollbar-hide">
+                                        <!-- Layout options will be generated here -->
                                     </div>
                                 </div>
+                                <div class="flex items-center justify-center mt-2">
+                                     <button id="view-more-layouts-btn" class="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
+                                        <span id="view-more-text">View More</span>
+                                        <svg id="view-more-icon" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex flex-col space-y-2">
-                                <button id="save-button" class="w-full bg-gradient-to-r from-teal-400 to-sky-500 hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50 text-sm" disabled>
-                                    <span id="save-text">Download Slices</span>
-                                    <span id="spinner" class="hidden animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-                                </button>
-                                <button id="clear-button" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">Clear Images</button>
+
+                            <div id="tab-content-aspect" class="w-full flex-shrink-0">
+                                <h3 class="text-sm font-medium text-gray-300 mb-2">Aspect Ratio</h3>
+                                <div id="aspect-ratio-options" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                            </div>
+                            
+                            <div id="tab-content-edit" class="w-full flex-shrink-0">
+                                 <div class="space-y-3">
+                                    <div>
+                                        <label for="border-width-slider" class="block text-xs font-medium text-gray-300">Border: <span id="border-width-value">8</span>px</label>
+                                        <input id="border-width-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                    </div>
+                                    <div>
+                                        <label for="border-radius-slider" class="block text-xs font-medium text-gray-300">Radius: <span id="border-radius-value">8</span>px</label>
+                                        <input id="border-radius-slider" type="range" min="0" max="50" value="8" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                    </div>
+                                     <div class="flex items-center justify-between pt-2">
+                                        <label for="gradient-toggle" class="text-xs font-medium text-gray-300">Dynamic Gradient BG</label>
+                                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                            <input type="checkbox" name="gradient-toggle" id="gradient-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked/>
+                                            <label for="gradient-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-600 cursor-pointer"></label>
+                                        </div>
+                                    </div>
+                                     <div id="color-picker-container" class="hidden">
+                                         <label for="bg-color-picker" class="block text-xs font-medium text-gray-300">Background Color</label>
+                                         <input id="bg-color-picker" type="color" value="#1f2937" class="w-full h-10 p-1 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer">
+                                     </div>
+                                </div>
+                            </div>
+
+                            <div id="tab-content-save" class="w-full flex-shrink-0">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-300 mb-1">Output Quality</label>
+                                            <div id="quality-options" class="grid grid-cols-3 gap-2">
+                                                <button data-scale="2" class="quality-btn p-2 bg-teal-600 ring-2 ring-teal-400 rounded-lg text-xs font-medium transition-colors">Standard</button>
+                                                <button data-scale="3" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">High</button>
+                                                <button data-scale="4" class="quality-btn p-2 bg-gray-700 rounded-lg text-xs font-medium transition-colors">Ultra</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col space-y-2">
+                                        <button id="save-button" class="w-full bg-gradient-to-r from-teal-400 to-sky-500 hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50 text-sm" disabled>
+                                            <span id="save-text">Download Slices</span>
+                                            <span id="spinner" class="hidden animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                                        </button>
+                                        <button id="clear-button" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">Clear Images</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -229,6 +375,40 @@
     </aside>
     
     <input type="file" id="image-upload" accept="image/*" class="hidden">
+
+    <!-- ===== DOWNLOAD MODAL HTML ===== -->
+    <div id="download-modal">
+        <div class="modal-content">
+            <div id="checkmark-container" class="checkmark-container">
+                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+            <h3 id="modal-title" class="text-lg font-medium leading-6 text-white">Generating Slices...</h3>
+            <div id="modal-progress-body">
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <p id="progress-text" class="text-sm text-gray-400">Initializing...</p>
+            </div>
+            <div id="modal-footer" class="mt-5 hidden">
+                 <div id="success-buttons" class="hidden w-full sm:flex sm:flex-row-reverse gap-3">
+                     <button id="edit-more-btn" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-teal-500 text-base font-medium text-white hover:bg-teal-600 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Edit More
+                    </button>
+                    <button id="success-cancel-btn" type="button" class="w-full mt-3 sm:mt-0 inline-flex justify-center rounded-md border border-gray-500 shadow-sm px-4 py-2 bg-transparent text-base font-medium text-white hover:bg-gray-700 focus:outline-none sm:w-auto sm:text-sm">
+                        Close
+                    </button>
+                 </div>
+                 <button id="error-close-btn" type="button" class="w-full hidden justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-500 text-base font-medium text-white hover:bg-red-600 focus:outline-none sm:text-sm">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END DOWNLOAD MODAL HTML ===== -->
+
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -258,7 +438,25 @@
             const gradientToggle = document.getElementById('gradient-toggle');
             const colorPickerContainer = document.getElementById('color-picker-container');
             const bgColorPicker = document.getElementById('bg-color-picker');
+            const controlPanel = document.getElementById('control-panel');
+            const togglePanelBtn = document.getElementById('toggle-panel-btn');
+            const togglePanelIcon = document.getElementById('toggle-panel-icon');
+            const panelContentWrapper = document.getElementById('panel-content-wrapper');
+            const qualityOptions = document.getElementById('quality-options');
             let indicatorTimeout;
+
+            // Modal elements
+            const downloadModal = document.getElementById('download-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalProgressBody = document.getElementById('modal-progress-body');
+            const modalFooter = document.getElementById('modal-footer');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const checkmarkContainer = document.getElementById('checkmark-container');
+            const successButtons = document.getElementById('success-buttons');
+            const editMoreBtn = document.getElementById('edit-more-btn');
+            const successCancelBtn = document.getElementById('success-cancel-btn');
+            const errorCloseBtn = document.getElementById('error-close-btn');
 
             const tabButtons = { layout: document.getElementById('tab-btn-layout'), aspect: document.getElementById('tab-btn-aspect'), edit: document.getElementById('tab-btn-edit'), save: document.getElementById('tab-btn-save') };
             const tabOrder = ['layout', 'aspect', 'edit', 'save'];
@@ -289,6 +487,38 @@
                 'Film Strip': { slices: 5, grid: 'grid-cols-5 grid-rows-1', cells: [{ c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }, { c: 1, r: 1 }] },
             };
             
+            function createDeleteButton(cell) {
+                const existingBtn = cell.querySelector('.delete-btn');
+                if (existingBtn) existingBtn.remove();
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (cell.imgState && cell.imgState.objectURL) {
+                        URL.revokeObjectURL(cell.imgState.objectURL);
+                    }
+                    cell.innerHTML = '';
+                    cell.classList.remove('has-image');
+                    cell.imgState = { img: null, x: 0, y: 0, scale: 1, isDragging: false, startX: 0, startY: 0, isPinching: false, initialPinchDistance: 0, startScale: 1, objectURL: null, pannable: false };
+                    imagesLoadedCount = Math.max(0, imagesLoadedCount - 1);
+                    if (imagesLoadedCount === 0) saveButton.disabled = true;
+                    const cellIndex = Array.from(layoutPreview.children).indexOf(cell);
+                    if (cellIndex > -1) cellData[cellIndex] = null;
+                    if (layouts[currentLayoutKey].special === 'blur-bg') {
+                        clearBlurBackground();
+                    } else {
+                        if (cellColors.has(cell)) {
+                            cellColors.delete(cell);
+                            updateBackground();
+                        }
+                    }
+                    updatePlaceholders();
+                    toggleEditMode(tabButtons.edit.classList.contains('active'));
+                });
+                cell.appendChild(deleteBtn);
+            }
+            
             function showNotification(message, isError = true) {
                 Toastify({
                     text: message,
@@ -307,35 +537,27 @@
                     viewMoreText.textContent = 'View More';
                     viewMoreIcon.classList.remove('rotate-180');
                 }
-                
                 const tabIndex = tabOrder.indexOf(tabName);
                 tabsWrapper.style.transform = `translateX(-${tabIndex * 100}%)`;
                 Object.values(tabButtons).forEach(btn => btn.classList.remove('active'));
                 tabButtons[tabName].classList.add('active');
-
-                const isEditable = (tabName === 'edit');
-                toggleEditMode(isEditable);
+                toggleEditMode((tabName === 'edit'));
             }
             
             Object.keys(tabButtons).forEach(key => {
-                tabButtons[key].addEventListener('click', () => {
-                    if(!tabButtons[key].disabled) {
-                        switchTab(key);
-                    }
-                });
+                tabButtons[key].addEventListener('click', () => { if(!tabButtons[key].disabled) switchTab(key); });
+            });
+
+            togglePanelBtn.addEventListener('click', () => {
+                controlPanel.classList.toggle('minimized');
+                togglePanelIcon.classList.toggle('rotate-180');
             });
             
             viewMoreLayoutsBtn.addEventListener('click', () => {
                 layoutOptionsWrapper.classList.toggle('expanded');
-                if (layoutOptionsWrapper.classList.contains('expanded')) {
-                    viewMoreText.textContent = 'View Less';
-                    viewMoreIcon.classList.add('rotate-180');
-                } else {
-                    viewMoreText.textContent = 'View More';
-                    viewMoreIcon.classList.remove('rotate-180');
-                }
+                viewMoreText.textContent = layoutOptionsWrapper.classList.contains('expanded') ? 'View Less' : 'View More';
+                viewMoreIcon.classList.toggle('rotate-180');
             });
-
 
             function renderSliceLines() {
                 requestAnimationFrame(() => {
@@ -386,7 +608,6 @@
             function toggleEditMode(isEditable) {
                 document.querySelectorAll('.layout-cell').forEach(cell => {
                     cell.isEditable = isEditable;
-                    // You might want to toggle cursor style here as well
                     if(isEditable && !cell.classList.contains('has-image')) {
                         cell.style.cursor = 'pointer';
                     } else if (cell.classList.contains('has-image')) {
@@ -410,7 +631,6 @@
                 layoutPreviewContainer.style.padding = `${borderWidthSlider.value}px`;
                 layoutPreviewContainer.style.borderRadius = `${borderRadiusSlider.value}px`;
                 layoutPreviewContainer.style.aspectRatio = (layout.slices * aspectRatio.w) / aspectRatio.h;
-                
                 imagesLoadedCount = 0;
                 saveButton.disabled = true;
 
@@ -420,13 +640,19 @@
                     cell.style.borderRadius = `${borderRadiusSlider.value}px`;
                     cell.style.gridColumn = `span ${cellInfo.c}`;
                     cell.style.gridRow = `span ${cellInfo.r}`;
-                   
-                    cell.imgState = { img: null, x: 0, y: 0, scale: 1, isDragging: false, startX: 0, startY: 0, isPinching: false, initialPinchDistance: 0, startScale: 1, objectURL: null };
+                    cell.imgState = { img: null, x: 0, y: 0, scale: 1, isDragging: false, startX: 0, startY: 0, isPinching: false, initialPinchDistance: 0, startScale: 1, objectURL: null, pannable: false };
                     cell.addEventListener('click', () => { if (cell.isEditable && !cell.classList.contains('has-image')) { activeCell = cell; imageUploadInput.click(); } });
                     cell.addEventListener('mousedown', (e) => { if (cell.isEditable && cell.classList.contains('has-image')) { e.preventDefault(); gestureTargetCell = cell; cell.imgState.isDragging = true; cell.imgState.startX = e.clientX - cell.imgState.x; cell.imgState.startY = e.clientY - cell.imgState.y; } });
-                    cell.addEventListener('touchstart', (e) => { if (cell.isEditable && cell.classList.contains('has-image') && e.touches.length === 1) { gestureTargetCell = cell; const { imgState } = cell; const touch = e.touches[0]; imgState.isDragging = true; imgState.startX = touch.clientX - imgState.x; imgState.startY = touch.clientY - imgState.y; } }, { passive: true });
+                    cell.addEventListener('touchstart', (e) => {
+                        if (cell.isEditable && cell.classList.contains('has-image') && e.touches.length === 1) {
+                            gestureTargetCell = cell;
+                            const { imgState } = cell;
+                            const touch = e.touches[0];
+                            imgState.startX = touch.clientX - imgState.x;
+                            imgState.startY = touch.clientY - imgState.y;
+                        }
+                    });
                     cell.addEventListener('wheel', (e) => { if (cell.isEditable && cell.classList.contains('has-image')) { e.preventDefault(); const { imgState } = cell; const scaleAmount = 0.1; imgState.scale = e.deltaY < 0 ? imgState.scale + scaleAmount : Math.max(1, imgState.scale - scaleAmount); updateTransform(imgState); } });
-                    
                     if (cellData[index] && cellData[index].objectURL) {
                         recreateImageInCell(cell, cellData[index]);
                     }
@@ -447,57 +673,58 @@
                     cell.imgState.img = cellImg;
                     updateTransform(cell.imgState);
                     cell.classList.add('has-image');
+                    createDeleteButton(cell);
                     imagesLoadedCount++;
                     if (imagesLoadedCount > 0) saveButton.disabled = false;
                  }
             }
 
-            window.addEventListener('mousedown', () => { /* Prevent default text selection */ });
+            window.addEventListener('mousedown', () => {});
             window.addEventListener('mousemove', (e) => { if (gestureTargetCell?.imgState.isDragging) { const { imgState } = gestureTargetCell; imgState.x = e.clientX - imgState.startX; imgState.y = e.clientY - imgState.startY; updateTransform(imgState); } });
             window.addEventListener('mouseup', () => { if (gestureTargetCell) { gestureTargetCell.imgState.isDragging = false; gestureTargetCell = null; } });
-            
             window.addEventListener('touchstart', (e) => {
                 if (gestureTargetCell && e.touches.length === 2) {
                     const { imgState } = gestureTargetCell;
                     imgState.isDragging = false;
                     imgState.isPinching = true;
+                    imgState.pannable = true;
                     const [t1, t2] = e.touches;
                     imgState.initialPinchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
                     imgState.startScale = imgState.scale;
                 }
             }, { passive: false });
-
             window.addEventListener('touchmove', (e) => {
                 if (!gestureTargetCell) return;
                 const { imgState } = gestureTargetCell;
-                if (imgState.isDragging && e.touches.length === 1) {
-                    const touch = e.touches[0];
-                    imgState.x = touch.clientX - imgState.startX;
-                    imgState.y = touch.clientY - imgState.startY;
-                    updateTransform(imgState);
-                } else if (imgState.isPinching && e.touches.length === 2) {
+                if (imgState.isPinching && e.touches.length === 2) {
+                    e.preventDefault();
                     const [t1, t2] = e.touches;
                     const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
                     imgState.scale = Math.max(1, imgState.startScale * (currentDist / imgState.initialPinchDistance));
                     updateTransform(imgState);
+                    return;
                 }
+                if (e.touches.length === 1 && imgState.pannable) {
+                    e.preventDefault();
+                    imgState.isDragging = true;
+                    const touch = e.touches[0];
+                    imgState.x = touch.clientX - imgState.startX;
+                    imgState.y = touch.clientY - imgState.startY;
+                    updateTransform(imgState);
+                } 
             }, { passive: false });
-
             window.addEventListener('touchend', (e) => {
                 if (gestureTargetCell) {
                     const { imgState } = gestureTargetCell;
-                    if (e.touches.length < 2) {
-                        imgState.isPinching = false;
-                    }
-                    if (e.touches.length === 1) {
-                        imgState.isDragging = true;
+                    imgState.isPinching = false;
+                    imgState.isDragging = false;
+                    if (e.touches.length === 0) {
+                        imgState.pannable = false;
+                        gestureTargetCell = null; 
+                    } else if (e.touches.length === 1) {
                         const touch = e.touches[0];
                         imgState.startX = touch.clientX - imgState.x;
                         imgState.startY = touch.clientY - imgState.y;
-                    }
-                    if (e.touches.length < 1) {
-                        imgState.isDragging = false;
-                        gestureTargetCell = null;
                     }
                 }
             });
@@ -527,21 +754,24 @@
                         if (activeAspectRatioButton) activeAspectRatioButton.classList.remove('ring-2', 'ring-teal-400', 'bg-teal-600');
                         option.classList.add('ring-2', 'ring-teal-400', 'bg-teal-600');
                         activeAspectRatioButton = option;
+                        
+                        // Remove all possible width classes first
+                        layoutPreviewContainer.classList.remove('w-full', 'w-[175vw]', 'sm:w-[125vw]', 'w-[200vw]', 'sm:w-[150vw]', 'w-[220vw]', 'sm:w-[175vw]');
 
-                        layoutPreviewContainer.classList.remove('w-full', 'w-[175vw]', 'sm:w-[125vw]', 'w-[220vw]', 'sm:w-[175vw]');
                         if (currentLayoutKey === 'Solo Focus') {
-                           layoutPreviewContainer.classList.add('w-full');
+                            layoutPreviewContainer.classList.add('w-full');
                         } else if (key === '1.91:1') {
                             layoutPreviewContainer.classList.add('w-[220vw]', 'sm:w-[175vw]');
-                        } else {
-                            layoutPreviewContainer.classList.add('w-[175vw]', 'sm:w-[125vw]');
+                        } else if (key === '4:5') {
+                             layoutPreviewContainer.classList.add('w-[175vw]', 'sm:w-[125vw]');
+                        } else { // Default case for 1:1
+                            layoutPreviewContainer.classList.add('w-[200vw]', 'sm:w-[150vw]');
                         }
                         
                         renderLayout(false);
                     });
                     aspectRatioOptionsContainer.appendChild(option);
                 });
-                 // Set default aspect ratio
                 const defaultAspectBtn = aspectRatioOptionsContainer.querySelector('button');
                 if(defaultAspectBtn) defaultAspectBtn.click();
             }
@@ -549,7 +779,6 @@
             function generateLayoutOptions() {
                 const allLayoutKeys = Object.keys(layouts);
                 layoutOptionsContainer.innerHTML = '';
-
                 const createOption = (key) => {
                     const layout = layouts[key];
                     const option = document.createElement('div');
@@ -573,12 +802,11 @@
                         if (activeLayoutButton) activeLayoutButton.classList.remove('ring-2', 'ring-teal-400');
                         option.classList.add('ring-2', 'ring-teal-400');
                         activeLayoutButton = option;
-                        document.querySelector('#aspect-ratio-options button')?.click(); // Re-click the current aspect ratio to apply sizing
+                        document.querySelector('#aspect-ratio-options button')?.click();
                         renderLayout(false);
                     });
                     return option;
                 }
-
                 allLayoutKeys.forEach(key => {
                     layoutOptionsContainer.appendChild(createOption(key));
                 });
@@ -603,10 +831,7 @@
             }
             
             function updateBackground() {
-                if (layouts[currentLayoutKey]?.special === 'blur-bg' && cellColors.size > 0) {
-                     return; // Blur background takes precedence
-                }
-                
+                if (layouts[currentLayoutKey]?.special === 'blur-bg' && cellColors.size > 0) return;
                 if (gradientToggle.checked) {
                     colorPickerContainer.classList.add('hidden');
                     updateGradientBackground();
@@ -618,11 +843,8 @@
 
             gradientToggle.addEventListener('change', updateBackground);
             bgColorPicker.addEventListener('input', () => {
-                if (!gradientToggle.checked) {
-                    layoutPreviewContainer.style.background = bgColorPicker.value;
-                }
+                if (!gradientToggle.checked) layoutPreviewContainer.style.background = bgColorPicker.value;
             });
-
 
             imageUploadInput.addEventListener('change', (event) => {
                 const file = event.target.files[0];
@@ -631,40 +853,28 @@
                     showNotification('Invalid file type. Please select an image.');
                     return;
                 }
-                
                 const tempImg = new Image();
                 const tempObjectURL = URL.createObjectURL(file);
-
                 tempImg.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    
                     canvas.width = tempImg.width;
                     canvas.height = tempImg.height;
-                    
                     ctx.drawImage(tempImg, 0, 0, tempImg.width, tempImg.height);
                     URL.revokeObjectURL(tempObjectURL);
-
                     canvas.toBlob(blob => {
-                        if (activeCell.imgState.objectURL) {
-                            URL.revokeObjectURL(activeCell.imgState.objectURL);
-                        }
-                        
+                        if (activeCell.imgState.objectURL) URL.revokeObjectURL(activeCell.imgState.objectURL);
                         const normalizedObjectURL = URL.createObjectURL(blob);
                         activeCell.imgState.objectURL = normalizedObjectURL;
-                        
                         const cellImg = new Image();
                         cellImg.src = normalizedObjectURL;
-
                         cellImg.onload = () => {
                             if (!activeCell.classList.contains('has-image')) imagesLoadedCount++;
                             const cellRect = activeCell.getBoundingClientRect();
                             const cellRatio = cellRect.width / cellRect.height;
                             const imgRatio = cellImg.naturalWidth / cellImg.naturalHeight;
-
                             cellImg.style.height = imgRatio > cellRatio ? '100%' : 'auto';
                             cellImg.style.width = imgRatio > cellRatio ? 'auto' : '100%';
-                            
                             activeCell.innerHTML = '';
                             activeCell.appendChild(cellImg);
                             const { imgState } = activeCell;
@@ -674,11 +884,10 @@
                             imgState.y = 0;
                             updateTransform(imgState);
                             activeCell.classList.add('has-image');
+                            createDeleteButton(activeCell);
                             if (imagesLoadedCount > 0) saveButton.disabled = false;
-                            
                             const cellIndex = Array.from(layoutPreview.children).indexOf(activeCell);
                             cellData[cellIndex] = activeCell.imgState;
-                            
                             if (layouts[currentLayoutKey].special === 'blur-bg') {
                                 setBlurBackground(cellImg.src);
                                 cellColors.clear();
@@ -688,7 +897,6 @@
                                 updateBackground();
                             }
                         };
-                        
                         cellImg.onerror = () => {
                             showNotification('Error: Could not load processed image.');
                             URL.revokeObjectURL(normalizedObjectURL);
@@ -697,13 +905,11 @@
                         };
                     }, file.type);
                 };
-                
                 tempImg.onerror = () => {
                     showNotification('Error: Could not load the selected image.');
                     URL.revokeObjectURL(tempObjectURL);
                     updatePlaceholders();
                 };
-
                 tempImg.src = tempObjectURL;
                 event.target.value = null;
             });
@@ -720,7 +926,6 @@
             borderWidthSlider.addEventListener('input', (e) => { borderWidthValue.textContent = e.target.value; if (currentLayoutKey) { layoutPreviewContainer.style.padding = `${e.target.value}px`; layoutPreview.style.gap = `${e.target.value}px`; renderSliceLines(); } });
             borderRadiusSlider.addEventListener('input', (e) => { borderRadiusValue.textContent = e.target.value; if (currentLayoutKey) { layoutPreviewContainer.style.borderRadius = `${e.target.value}px`; document.querySelectorAll('.layout-cell').forEach(cell => cell.style.borderRadius = `${e.target.value}px`); } });
 
-            const qualityOptions = document.getElementById('quality-options');
             qualityOptions.addEventListener('click', (e) => {
                 if (e.target.matches('.quality-btn')) {
                     qualityOptions.querySelectorAll('.quality-btn').forEach(btn => {
@@ -733,18 +938,50 @@
                 }
             });
 
+            function closeModal() {
+                downloadModal.classList.remove('visible');
+                saveText.classList.remove('hidden');
+                spinner.classList.add('hidden');
+                if (imagesLoadedCount > 0) saveButton.disabled = false;
+            }
+
+            successCancelBtn.addEventListener('click', closeModal);
+            errorCloseBtn.addEventListener('click', closeModal);
+            editMoreBtn.addEventListener('click', () => {
+                closeModal();
+                switchTab('layout');
+            });
+
             saveButton.addEventListener('click', async () => {
-                saveText.classList.add('hidden'); spinner.classList.remove('hidden'); saveButton.disabled = true;
+                saveText.classList.add('hidden');
+                spinner.classList.remove('hidden');
+                saveButton.disabled = true;
+
+                // Reset and show modal for PROGRESS state
+                modalTitle.textContent = 'Generating Slices...';
+                modalProgressBody.classList.remove('hidden');
+                modalFooter.classList.add('hidden');
+                progressBar.style.width = '0%';
+                progressText.textContent = 'Initializing...';
+                checkmarkContainer.style.display = 'none';
+                successButtons.classList.add('hidden');
+                errorCloseBtn.classList.add('hidden');
+                downloadModal.classList.add('visible');
+
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 try {
                     sliceLinesOverlay.style.display = 'none';
                     const mainCanvas = await html2canvas(layoutPreviewContainer, {
-                        useCORS: true, scale: currentScale, backgroundColor: null,
+                        useCORS: true,
+                        scale: currentScale,
+                        backgroundColor: null,
                         onclone: (doc) => {
+                            doc.querySelectorAll('.delete-btn').forEach(btn => btn.style.display = 'none');
                             const container = doc.getElementById('layout-preview-container');
                             container.style.transition = 'none';
-                            const originalCells = layoutPreview.querySelectorAll('.layout-cell');
                             doc.querySelectorAll('.layout-cell').forEach((clonedCell, index) => {
-                                const originalImg = originalCells[index]?.querySelector('img');
+                                const originalImg = layoutPreview.querySelectorAll('.layout-cell')[index]?.querySelector('img');
                                 if (originalImg) {
                                     const clonedImg = clonedCell.querySelector('img');
                                     if(clonedImg) clonedImg.style.transform = getComputedStyle(originalImg).transform;
@@ -753,27 +990,44 @@
                         }
                     });
                     sliceLinesOverlay.style.display = 'block';
-                    
+
                     const sliceCount = layouts[currentLayoutKey].slices;
                     const sliceWidth = mainCanvas.width / sliceCount;
 
                     for (let i = 0; i < sliceCount; i++) {
+                        progressText.textContent = `Downloading slice ${i + 1} of ${sliceCount}...`;
+
                         const sliceCanvas = document.createElement('canvas');
                         sliceCanvas.width = sliceWidth;
                         sliceCanvas.height = mainCanvas.height;
                         sliceCanvas.getContext('2d').drawImage(mainCanvas, i * sliceWidth, 0, sliceWidth, mainCanvas.height, 0, 0, sliceWidth, mainCanvas.height);
+
                         const link = document.createElement('a');
                         link.download = `slice-${i + 1}-of-${sliceCount}.png`;
                         link.href = sliceCanvas.toDataURL('image/png');
+
+                        await new Promise(resolve => setTimeout(resolve, 150));
                         link.click();
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        progressBar.style.width = `${((i + 1) / sliceCount) * 100}%`;
                     }
-                } catch (err) { console.error('Error saving slices:', err); showNotification('Error: Could not save slices.'); } 
-                finally {
-                    setTimeout(() => {
-                        saveText.classList.remove('hidden'); spinner.classList.add('hidden');
-                        if(imagesLoadedCount > 0) saveButton.disabled = false;
-                    }, 500);
+
+                    // Show success state in modal
+                    modalTitle.textContent = 'Completed!';
+                    modalProgressBody.classList.add('hidden');
+                    checkmarkContainer.style.display = 'block';
+                    successButtons.classList.remove('hidden');
+                    modalFooter.classList.remove('hidden');
+
+                } catch (err) {
+                    console.error('Error saving slices:', err);
+                    showNotification('Error: Could not save slices.');
+                    modalTitle.textContent = 'An Error Occurred';
+                    progressText.textContent = 'Could not generate slices. Please try again.';
+                    modalProgressBody.classList.remove('hidden');
+                    checkmarkContainer.style.display = 'none';
+                    successButtons.classList.add('hidden');
+                    errorCloseBtn.classList.remove('hidden');
+                    modalFooter.classList.remove('hidden');
                 }
             });
 
